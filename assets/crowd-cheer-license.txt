@@ -1,0 +1,13 @@
+Crowd cheer sound
+=================
+
+Title: Arrowhead Stadium crowd noise
+Creator: Kj1595
+Source: https://commons.wikimedia.org/wiki/File:Arrowhead_Stadium_crowd_noise.wav
+License: Creative Commons Attribution-ShareAlike 4.0 International
+License URL: https://creativecommons.org/licenses/by-sa/4.0/
+
+Modifications:
+- Used as the crowd-cheer sound in the shooting game.
+- Playback position, volume, and playback rate are varied at runtime.
+- No changes were made to the stored audio file itself.
