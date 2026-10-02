@@ -1589,13 +1589,14 @@ function paintCheer(ch, hex) {
 var FLOWER_HEX = [0xf48fb1, 0xffd166, 0x8ed1fc, 0xf28b82, 0xc8a2ff, 0x9be7c4];
 function makeBouquet(idx, sink) {
   var g = new THREE.Group();
+  g.name = 'cheerBouquet';
   var stemMat = new THREE.MeshStandardMaterial({ color: 0x2f7a45, roughness: .82, metalness: 0 });
   var wrapMat = new THREE.MeshStandardMaterial({ color: 0xe8eef4, roughness: .7, metalness: .02, side: THREE.DoubleSide });
   var stemGeo = new THREE.CylinderGeometry(.42, .55, 8.2, 6);
-  var headGeo = new THREE.SphereGeometry(1.55, 8, 6);
-  var coreGeo = new THREE.SphereGeometry(.62, 7, 5);
+  var headGeo = new THREE.SphereGeometry(2.35, 8, 6);
+  var coreGeo = new THREE.SphereGeometry(.90, 7, 5);
   var leafGeo = new THREE.ConeGeometry(1.1, 2.6, 6);
-  var wrapGeo = new THREE.CylinderGeometry(2.7, 1.6, 5.4, 8, 1, true);
+  var wrapGeo = new THREE.CylinderGeometry(1.95, 1.15, 3.4, 8, 1, true);
   for (var i = 0; i < 6; i++) {
     var a = i / 6 * Math.PI * 2, rr = 1.45 + (i % 2) * .42;
     var x = Math.cos(a) * rr, z = Math.sin(a) * rr;
@@ -1603,14 +1604,14 @@ function makeBouquet(idx, sink) {
     stem.position.set(x * .58, 4.1, z * .58);
     stem.rotation.z = -x * .055; stem.rotation.x = z * .055;
     g.add(stem);
-    var flowerMat = new THREE.MeshStandardMaterial({ color: FLOWER_HEX[(idx + i) % FLOWER_HEX.length], roughness: .7, metalness: .02 });
+    var flowerMat = new THREE.MeshStandardMaterial({ color: FLOWER_HEX[(idx + i) % FLOWER_HEX.length], emissive: FLOWER_HEX[(idx + i) % FLOWER_HEX.length], emissiveIntensity: .16, roughness: .7, metalness: .02 });
     var head = new THREE.Mesh(headGeo, flowerMat);
-    head.position.set(x * 1.08, 8.1 + (i % 2) * .34, z * 1.08);
+    head.position.set(x * 1.08, 9.0 + (i % 2) * .38, z * 1.08);
     head.scale.set(1, .72, 1); g.add(head);
     var coreMat = new THREE.MeshStandardMaterial({ color: 0xffe19a, roughness: .62 });
     var core = new THREE.Mesh(coreGeo, coreMat);
     sink.push(coreMat);
-    core.position.copy(head.position).add(new THREE.Vector3(0, 0, .62)); g.add(core);
+    core.position.copy(head.position).add(new THREE.Vector3(0, 0, .88)); g.add(core);
     if (i % 2 === 0) {
       var leaf = new THREE.Mesh(leafGeo, stemMat);
       leaf.position.set(x * .86, 5.15, z * .86);
@@ -1619,7 +1620,7 @@ function makeBouquet(idx, sink) {
     sink.push(stemMat, flowerMat);
   }
   var wrap = new THREE.Mesh(wrapGeo, wrapMat);
-  wrap.position.y = 2.4; g.add(wrap); sink.push(wrapMat);
+  wrap.position.y = 2.0; g.add(wrap); sink.push(wrapMat);
   return g;
 }
 
@@ -1627,8 +1628,9 @@ function attachCheerProps(c, ch, idx) {
   var left = ch.root.getObjectByName('mixamorigLeftHand');
   if (left) {
     var bouquet = makeBouquet(idx, c.mats);
-    bouquet.position.set(0, 2.4, .7);
+    bouquet.position.set(0, 10, 5);
     bouquet.rotation.set(-.72, .18, .18);
+    bouquet.scale.setScalar(22);
     left.add(bouquet);
   }
   c.waveShoulder = ch.root.getObjectByName('mixamorigRightShoulder');
