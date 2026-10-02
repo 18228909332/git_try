@@ -680,6 +680,7 @@ window.addEventListener('resize', function () {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  if (typeof starMat !== 'undefined' && starMat) starMat.uniforms.uPixelRatio.value = renderer.getPixelRatio();
 });
 
 /* ================= 程序化贴图 ================= */
@@ -747,6 +748,112 @@ var flashTex = canvasTex(128, 128, function (g, w, h) {
     g.stroke();
   }
 });
+
+/* ================= 星空与流星 ================= */
+var skyTime = 0;
+var STAR_COUNT = 1100;
+var starPos = new Float32Array(STAR_COUNT * 3);
+var starPhase = new Float32Array(STAR_COUNT);
+var starSpeed = new Float32Array(STAR_COUNT);
+var starSize = new Float32Array(STAR_COUNT);
+var starBright = new Float32Array(STAR_COUNT);
+for (var si = 0; si < STAR_COUNT; si++) {
+  var az = rnd(-1.52, 1.52);
+  var el = Math.asin(rnd(.28, .94));
+  var rad = rnd(105, 132);
+  starPos[si * 3] = Math.cos(el) * Math.sin(az) * rad;
+  starPos[si * 3 + 1] = Math.sin(el) * rad;
+  starPos[si * 3 + 2] = -Math.cos(el) * Math.cos(az) * rad;
+  starPhase[si] = Math.random() * Math.PI * 2;
+  starSpeed[si] = rnd(.65, 2.4);
+  starSize[si] = Math.random() < .08 ? rnd(2.4, 3.8) : rnd(.65, 1.75);
+  starBright[si] = rnd(.45, 1);
+}
+var starGeo = new THREE.BufferGeometry();
+starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+starGeo.setAttribute('aPhase', new THREE.BufferAttribute(starPhase, 1));
+starGeo.setAttribute('aSpeed', new THREE.BufferAttribute(starSpeed, 1));
+starGeo.setAttribute('aSize', new THREE.BufferAttribute(starSize, 1));
+starGeo.setAttribute('aBright', new THREE.BufferAttribute(starBright, 1));
+var starMat = new THREE.ShaderMaterial({
+  uniforms: { uTime: { value: 0 }, uPixelRatio: { value: renderer.getPixelRatio() } },
+  vertexShader: [
+    'attribute float aPhase; attribute float aSpeed; attribute float aSize; attribute float aBright;',
+    'uniform float uTime; uniform float uPixelRatio; varying float vAlpha;',
+    'void main() {',
+    '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
+    '  gl_Position = projectionMatrix * mv;',
+    '  float pulse = 0.5 + 0.5 * sin(uTime * aSpeed + aPhase);',
+    '  vAlpha = aBright * (0.42 + 0.58 * pulse * pulse);',
+    '  gl_PointSize = aSize * uPixelRatio * (185.0 / max(1.0, -mv.z));',
+    '}',
+  ].join('\n'),
+  fragmentShader: [
+    'varying float vAlpha;',
+    'void main() {',
+    '  vec2 p = gl_PointCoord - vec2(0.5);',
+    '  float d = length(p);',
+    '  float a = smoothstep(0.5, 0.04, d);',
+    '  if (a < 0.02) discard;',
+    '  vec3 tint = mix(vec3(0.67, 0.78, 1.0), vec3(1.0, 0.94, 0.82), vAlpha * 0.35);',
+    '  gl_FragColor = vec4(tint, a * vAlpha);',
+    '}',
+  ].join('\n'),
+  transparent: true, depthWrite: false, depthTest: true, blending: THREE.AdditiveBlending, fog: false
+});
+var stars = new THREE.Points(starGeo, starMat);
+stars.frustumCulled = false;
+scene.add(stars);
+
+var meteorGlowTex = canvasTex(64, 64, function (g, w, h) {
+  var c = w / 2, grd = g.createRadialGradient(c, c, 0, c, c, c);
+  grd.addColorStop(0, 'rgba(255,255,255,1)');
+  grd.addColorStop(.16, 'rgba(220,240,255,.95)');
+  grd.addColorStop(.48, 'rgba(135,190,255,.35)');
+  grd.addColorStop(1, 'rgba(80,130,255,0)');
+  g.fillStyle = grd; g.fillRect(0, 0, w, h);
+});
+var meteors = [], meteorTimer = rnd(.5, 1.4);
+function spawnMeteor() {
+  if (meteors.length >= 3) return;
+  var fromLeft = Math.random() < .5, s = fromLeft ? 1 : -1;
+  var start = new THREE.Vector3(s * rnd(48, 88), rnd(42, 76), rnd(-115, -34));
+  var dir = new THREE.Vector3(-s * rnd(.58, .92), -rnd(.24, .52), rnd(-.08, .16)).normalize();
+  var len = rnd(8, 17), speed = rnd(28, 46), life = rnd(1.35, 2.35);
+  var pos = new Float32Array(6);
+  var geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  var mat = new THREE.LineBasicMaterial({ color: 0xd8efff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+  var line = new THREE.Line(geo, mat); line.frustumCulled = false; line.renderOrder = 2; scene.add(line);
+  var head = new THREE.Sprite(new THREE.SpriteMaterial({ map: meteorGlowTex, color: 0xd8efff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+  head.scale.setScalar(rnd(.55, .9)); scene.add(head);
+  meteors.push({ start: start, dir: dir, len: len, speed: speed, life: life, max: life, line: line, head: head, travel: 0 });
+}
+function updateSky(dt) {
+  skyTime += dt;
+  starMat.uniforms.uTime.value = skyTime;
+  meteorTimer -= dt;
+  if (meteorTimer <= 0) { spawnMeteor(); meteorTimer = rnd(2.0, 5.0); }
+  for (var i = meteors.length - 1; i >= 0; i--) {
+    var m = meteors[i], p = m.travel / (m.speed * m.life);
+    m.travel += m.speed * dt;
+    var headPos = m.start.clone().addScaledVector(m.dir, m.travel);
+    var tailPos = headPos.clone().addScaledVector(m.dir, -m.len);
+    var a = m.line.geometry.attributes.position.array;
+    a[0] = tailPos.x; a[1] = tailPos.y; a[2] = tailPos.z;
+    a[3] = headPos.x; a[4] = headPos.y; a[5] = headPos.z;
+    m.line.geometry.attributes.position.needsUpdate = true;
+    m.head.position.copy(headPos);
+    var fade = Math.sin(Math.PI * Math.min(1, p));
+    m.line.material.opacity = .88 * fade;
+    m.head.material.opacity = fade;
+    if (m.travel >= m.speed * m.life) {
+      scene.remove(m.line); scene.remove(m.head);
+      m.line.geometry.dispose(); m.line.material.dispose(); m.head.material.dispose();
+      meteors.splice(i, 1);
+    }
+  }
+}
 
 /* ================= 灯光 ================= */
 scene.add(new THREE.HemisphereLight(0x93b2dd, 0x141a24, 0.95));
@@ -2290,6 +2397,7 @@ function startGame() {
   muzzle.position.copy(WEAPONS[0].muzzlePos); ejector.position.copy(WEAPONS[0].ejectorPos);
   combo = 0; bestCombo = 0; hitsMade = 0; headshots = 0;
   speedMul = 1;
+  meteorTimer = rnd(.25, .9);
   sprayHeat = 0; sprayN = 0; sprayRecover = 0;
   firing = false;
   yaw = 0; pitch = 0;
@@ -2373,6 +2481,7 @@ function loop(now) {
   requestAnimationFrame(loop);
   var dt = Math.min(0.05, (now - last) / 1000);
   last = now;
+  updateSky(dt);
 
   if (state.phase !== 'paused') {
     elapsed += dt;
