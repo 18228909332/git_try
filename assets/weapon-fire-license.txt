@@ -1,0 +1,13 @@
+Weapon fire sound
+=================
+
+Title: Dragout - War sounds (cc0) (freesound)
+Creator: Dragout
+Source: https://commons.wikimedia.org/wiki/File:Dragout_-_War_sounds_(cc0)_(freesound).ogg
+License: Creative Commons Zero 1.0 Universal (CC0 1.0)
+License URL: https://creativecommons.org/publicdomain/zero/1.0/
+
+Modifications:
+- Used different excerpts from the recording for three in-game weapons.
+- Runtime processing changes playback rate, gain, EQ, duration, and reverb send.
+- No changes were made to the stored audio file itself.
