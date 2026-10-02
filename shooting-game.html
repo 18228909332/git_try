@@ -92,9 +92,10 @@
 
   #hint {
     position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%);
-    font-size: 13px; letter-spacing: 1px; color: #6b7a92; white-space: nowrap;
+    font-size: 13px; letter-spacing: 1px; color: #172638; white-space: nowrap;
+    text-shadow: 0 1px 0 rgba(255,255,255,.42), 0 0 8px rgba(255,255,255,.24);
   }
-  #hint b { color: #9fc4ef; font-weight: 600; }
+  #hint b { color: #07568f; font-weight: 800; }
 
   #zoomtag {
     position: absolute; top: 26px; left: 50%; transform: translateX(-50%);
@@ -813,7 +814,7 @@ var meteorGlowTex = canvasTex(64, 64, function (g, w, h) {
   grd.addColorStop(1, 'rgba(80,130,255,0)');
   g.fillStyle = grd; g.fillRect(0, 0, w, h);
 });
-var meteors = [], meteorTimer = rnd(.5, 1.4);
+var meteors = [], meteorTimer = 3;
 function spawnMeteor() {
   if (meteors.length >= 3) return;
   var fromLeft = Math.random() < .5, s = fromLeft ? 1 : -1;
@@ -833,7 +834,7 @@ function updateSky(dt) {
   skyTime += dt;
   starMat.uniforms.uTime.value = skyTime;
   meteorTimer -= dt;
-  if (meteorTimer <= 0) { spawnMeteor(); meteorTimer = rnd(2.0, 5.0); }
+  if (meteorTimer <= 0) { spawnMeteor(); meteorTimer = 3; }
   for (var i = meteors.length - 1; i >= 0; i--) {
     var m = meteors[i], p = m.travel / (m.speed * m.life);
     m.travel += m.speed * dt;
@@ -2397,7 +2398,7 @@ function startGame() {
   muzzle.position.copy(WEAPONS[0].muzzlePos); ejector.position.copy(WEAPONS[0].ejectorPos);
   combo = 0; bestCombo = 0; hitsMade = 0; headshots = 0;
   speedMul = 1;
-  meteorTimer = rnd(.25, .9);
+  meteorTimer = 3;
   sprayHeat = 0; sprayN = 0; sprayRecover = 0;
   firing = false;
   yaw = 0; pitch = 0;
